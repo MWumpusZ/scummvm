@@ -991,7 +991,7 @@ uint getSizeNextPOT(uint size) {
 
 - (void)applicationResume {
 	[self addEvent:InternalEvent(kInputApplicationResumed, 0, 0)];
-	if (_keyboardView == nil) {
+	if (_keyboardView != nil) {
 		[_keyboardView showKeyboard];  // We really just want to be first responder, which is all this does.
 	}
 }
