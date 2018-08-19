@@ -975,6 +975,7 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING_QUOTE(iPhone_Debug, "TARGETED_DEVICE_FAMILY", "1,2");
 	ValueList scummvmIOS_defines;
 	ADD_DEFINE(scummvmIOS_defines, "\"$(inherited)\"");
+	ADD_DEFINE(scummvmIOS_defines, "FORCE_RTL");  // Return to launcher rather than quitting
 	ADD_DEFINE(scummvmIOS_defines, "IPHONE");
 	ADD_DEFINE(scummvmIOS_defines, "IPHONE_IOS7");
 	ADD_DEFINE(scummvmIOS_defines, "IPHONE_SANDBOXED");
