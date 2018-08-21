@@ -431,6 +431,8 @@ uint getSizeNextPOT(uint size) {
 	// Initialize the OpenGL ES context
 	[self createContext];
 
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+
 	return self;
 }
 
@@ -767,6 +769,8 @@ uint getSizeNextPOT(uint size) {
 			rectHeight = (int)(screenWidth / gameScreenRatio);
 			xOffset = 0;
 			yOffset = (screenHeight - rectHeight) / 2;
+
+			[_keyboardView becomeFirstResponder];
 		}
 
 		//printf("Rect: %i, %i, %i, %i\n", xOffset, yOffset, rectWidth, rectHeight);
@@ -792,6 +796,14 @@ uint getSizeNextPOT(uint size) {
 
 	[self setViewTransformation];
 	[self updateMouseCursorScaling];
+}
+
+- (void)keyboardWillShow: (NSNotification *) notif{
+	BOOL isLandscape = (self.bounds.size.width > self.bounds.size.height);
+
+	if (isLandscape) {
+		[_keyboardView hideKeyboard];
+	}
 }
 
 - (void)setViewTransformation {
