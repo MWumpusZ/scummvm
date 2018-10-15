@@ -119,12 +119,11 @@ void LeadActor::start(bool isHandler) {
 
 void LeadActor::update() {
 	switch (_state) {
-	case kReady:
-		_sequencer->update();
-		_cursorMgr->update();
-		break;
 	case kMoving:
 		_walkMgr->update();
+		// fall through
+	case kReady:
+		_sequencer->update();
 		_cursorMgr->update();
 		break;
 	case kPlayingSequence:
@@ -169,10 +168,6 @@ void LeadActor::loadPDA(const Common::String &pageName) {
 }
 
 void LeadActor::onKeyboardButtonClick(Common::KeyCode code) {
-	if (code == Common::KEYCODE_g) {
-		loadPDA("TOC");
-		return;
-	}
 	switch (_state) {
 	case kMoving:
 		switch (code) {
@@ -246,9 +241,9 @@ void LeadActor::onLeftButtonClick(const Common::Point point) {
 	}
 }
 
-void LeadActor::onLeftButtonUp(const Common::Point point) {
+void LeadActor::onLeftButtonUp() {
 	if (_state == kPDA)
-		_page->getGame()->getPdaMgr().onLeftButtonUp(point);
+		_page->getGame()->getPdaMgr().onLeftButtonUp();
 }
 
 void LeadActor::onRightButtonClick(const Common::Point point) {

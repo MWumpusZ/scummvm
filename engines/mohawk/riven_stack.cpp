@@ -237,7 +237,7 @@ void RivenStack::runCredits(uint16 video, uint32 delay, uint32 videoFrameCountOv
 		frameCount = videoPtr->getFrameCount();
 	}
 
-	while (!_vm->hasGameEnded() && _vm->_gfx->getCurCreditsImage() <= 320) {
+	while (!_vm->hasGameEnded() && !videoPtr->endOfVideo()) {
 		if (videoPtr->getCurFrame() >= frameCount - 1) {
 			if (nextCreditsFrameStart == 0) {
 				videoPtr->disable();
@@ -246,7 +246,7 @@ void RivenStack::runCredits(uint16 video, uint32 delay, uint32 videoFrameCountOv
 			} else if (_vm->getTotalPlayTime() >= nextCreditsFrameStart) {
 				// the first two frames stay on for 4 seconds
 				// the rest of the scroll updates happen at 60Hz
-				if (_vm->_gfx->getCurCreditsImage() < 304)
+				if (_vm->_gfx->getCurCreditsImage() < kRivenCreditsSecondImage)
 					nextCreditsFrameStart = _vm->getTotalPlayTime() + 4000;
 				else
 					nextCreditsFrameStart = _vm->getTotalPlayTime() + 1000 / 60;
@@ -258,7 +258,16 @@ void RivenStack::runCredits(uint16 video, uint32 delay, uint32 videoFrameCountOv
 		_vm->doFrame();
 	}
 
-	_vm->setGameEnded();
+	videoPtr->stop();
+	_vm->_cursor->showCursor();
+
+	// Clear the game state
+	_vm->startNewGame();
+
+	// Go to the main menu
+	RivenScriptPtr goToMainMenu = _vm->_scriptMan->createScriptWithCommand(
+			new RivenStackChangeCommand(_vm, kStackAspit, 1, true, true));
+	_vm->_scriptMan->runScript(goToMainMenu, true);
 }
 
 void RivenStack::installCardTimer() {

@@ -111,3 +111,10 @@ config.mk engines/plugins_table.h engines/engines.mk: config.h
 ifneq ($(origin port_mk), undefined)
 include $(srcdir)/$(port_mk)
 endif
+
+.PHONY: print-dists print-executables
+print-dists:
+	@echo $(DIST_FILES_DOCS) $(DIST_FILES_THEMES) $(DIST_FILES_NETWORKING) $(DIST_FILES_ENGINEDATA) $(srcdir)/doc
+
+print-executables:
+	@echo $(if $(DIST_EXECUTABLES),$(DIST_EXECUTABLES),$(EXECUTABLE) $(PLUGINS))

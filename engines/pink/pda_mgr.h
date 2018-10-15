@@ -31,7 +31,6 @@
 namespace Pink {
 
 class PinkEngine;
-class Actor;
 class LeadActor;
 class PDAPage;
 
@@ -53,7 +52,7 @@ public:
 	void close();
 
 	void onLeftButtonClick(Common::Point point);
-	void onLeftButtonUp(Common::Point point);
+	void onLeftButtonUp();
 	void onMouseMove(Common::Point point);
 
 	PinkEngine *getGame() const { return _game; }

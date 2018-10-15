@@ -37,15 +37,7 @@ Fixed14 StarTrekEngine::sin(Angle angle) {
 	else if (i == 0x300)
 		return -1.0;
 
-	float f = 0.0;
-	if (i < 0x100)
-		f = _sineTable.getTable()[i & 0xff];
-	else if (i < 0x200)
-		f = _sineTable.getTable()[256 - (i & 0xff)];
-	else if (i < 0x300)
-		f = -_sineTable.getTable()[i & 0xff];
-	else if (i < 0x400)
-		f = -_sineTable.getTable()[256 - (i & 0xff)];
+	float f = _sineTable.at(i);
 	return Fixed14(f);
 }
 
@@ -54,7 +46,7 @@ Fixed14 StarTrekEngine::cos(Angle angle) {
 }
 
 Angle StarTrekEngine::atan2(int32 deltaX, int32 deltaY) {
-	const int16 atanTable[] = {
+	static const int16 atanTable[] = {
 		0x0000, 0x0064, 0x00c9, 0x012d, 0x0192, 0x01f6, 0x025b, 0x02c0,
 		0x0324, 0x0389, 0x03ee, 0x0453, 0x04b8, 0x051d, 0x0582, 0x05e8,
 		0x064d, 0x06b3, 0x0718, 0x077e, 0x07e4, 0x084a, 0x08b1, 0x0917,

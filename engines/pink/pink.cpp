@@ -135,7 +135,7 @@ Common::Error Pink::PinkEngine::run() {
 				_actor->onLeftButtonClick(event.mouse);
 				break;
 			case Common::EVENT_LBUTTONUP:
-				_actor->onLeftButtonUp(event.mouse);
+				_actor->onLeftButtonUp();
 				break;
 			case Common::EVENT_RBUTTONDOWN:
 				if (isPeril())
@@ -168,8 +168,8 @@ void PinkEngine::pauseEngine(void *engine, bool pause) {
 }
 
 void PinkEngine::load(Archive &archive) {
-	archive.readString();
-	archive.readString();
+	archive.skipString();
+	archive.skipString();
 	_modules.deserialize(archive);
 }
 
