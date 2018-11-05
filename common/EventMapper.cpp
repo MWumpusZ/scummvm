@@ -84,6 +84,39 @@ List<Event> DefaultEventMapper::mapEvent(const Event &ev, EventSource *source) {
 		return List<Event>();
 	}
 #endif
+    
+    // TODO: MZ: This might be where we can make the edges magnetic for purposes of mouse events.
+    // That should possibly be game specific though, which suggests this might not be the right place?
+    if (ev.type == EVENT_MOUSEMOVE ||
+        ev.type == EVENT_LBUTTONDOWN ||
+        ev.type == EVENT_LBUTTONUP ||
+        ev.type == EVENT_RBUTTONDOWN ||
+        ev.type == EVENT_RBUTTONUP ||
+        ev.type == EVENT_WHEELDOWN ||
+        ev.type == EVENT_WHEELUP ||
+        ev.type == EVENT_MBUTTONDOWN ||
+        ev.type == EVENT_MBUTTONUP ) {
+
+        int sys_width = g_system->getWidth(); // Unhappiness in the menu, and scumm save/load screen; g_system is returning 320x200, but we aare in fact getting 1024x768 (and our real ipad display is 2048x1536 i beliebe) :/  Seems fine in game?
+        int sys_height = g_system->getHeight();
+        
+        mappedEvent = ev;
+        
+        const int16 MAGNETIC_THRESHOLD = 16;
+        
+        if (mappedEvent.mouse.x < MAGNETIC_THRESHOLD) {
+            mappedEvent.mouse.x = 0;
+        }
+        if (mappedEvent.mouse.y < MAGNETIC_THRESHOLD) {
+            mappedEvent.mouse.y = 0;
+        }
+        if (mappedEvent.mouse.x > sys_width - 1 - MAGNETIC_THRESHOLD) {
+            mappedEvent.mouse.x = sys_width - 1;
+        }
+        if (mappedEvent.mouse.y > sys_height - 1 - MAGNETIC_THRESHOLD) {
+            mappedEvent.mouse.y = sys_height - 1;
+        }
+    }
 
 	events.push_back(mappedEvent);
 	return events;
