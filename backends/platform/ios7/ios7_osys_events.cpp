@@ -142,23 +142,41 @@ bool OSystem_iOS7::handleEvent_mouseDown(Common::Event &event, int x, int y) {
 bool OSystem_iOS7::handleEvent_mouseUp(Common::Event &event, int x, int y) {
 	//printf("Mouse up at (%u, %u)\n", x, y);
 
+	//assert(x == _videoContext->mouseX); -- these are actually different (ocassionally - particularly with touch-and-drag), but should they be?
+	//assert(y == _videoContext->mouseY);
+
+	Common::Point eventPosition(_videoContext->mouseX, _videoContext->mouseY);
+
+	const int MAGNETIC_THRESHOLD = 8;
+
+	if (!_videoContext->overlayVisible) {
+		if (eventPosition.x < MAGNETIC_THRESHOLD) {
+			eventPosition.x = 0;
+		} else if (eventPosition.x > _videoContext->screenWidth - 1 - MAGNETIC_THRESHOLD) {
+			eventPosition.x = _videoContext->screenWidth - 1;
+		}
+
+		if (eventPosition.y < MAGNETIC_THRESHOLD) {
+			eventPosition.y = 0;
+		} else if (eventPosition.y > _videoContext->screenHeight - 1 - MAGNETIC_THRESHOLD) {
+			eventPosition.y = _videoContext->screenHeight - 1;
+		}
+	}
+
 	if (_secondaryTapped) {
 		_secondaryTapped = false;
 		if (!handleEvent_secondMouseUp(event, x, y))
 			return false;
 	} else if (_mouseClickAndDragEnabled) {
 		event.type = Common::EVENT_LBUTTONUP;
-		event.mouse.x = _videoContext->mouseX;
-		event.mouse.y = _videoContext->mouseY;
+		event.mouse = eventPosition;
 	} else {
 		if (getMillis() - _lastMouseDown < 250) {
 			event.type = Common::EVENT_LBUTTONDOWN;
-			event.mouse.x = _videoContext->mouseX;
-			event.mouse.y = _videoContext->mouseY;
+			event.mouse = eventPosition;
 
-			_queuedInputEvent.type = Common::EVENT_LBUTTONUP;
-			_queuedInputEvent.mouse.x = _videoContext->mouseX;
-			_queuedInputEvent.mouse.y = _videoContext->mouseY;
+			_queuedInputEvent.type = Common::EVENT_LBUTTONUP;  // Is there a reason to not just copy the whole event?
+			_queuedInputEvent.mouse = eventPosition;
 			_lastMouseTap = getMillis();
 			_queuedEventTime = _lastMouseTap + kQueuedInputEventDelay;
 		} else
