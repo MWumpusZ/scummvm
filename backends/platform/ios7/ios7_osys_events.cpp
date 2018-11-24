@@ -142,6 +142,27 @@ bool OSystem_iOS7::handleEvent_mouseDown(Common::Event &event, int x, int y) {
 bool OSystem_iOS7::handleEvent_mouseUp(Common::Event &event, int x, int y) {
 	//printf("Mouse up at (%u, %u)\n", x, y);
 
+	//assert(x == _videoContext->mouseX); -- these are actually different (ocassionally - particularly with touch-and-drag), but should they be?
+	//assert(y == _videoContext->mouseY);
+
+	Common::Point eventPosition(_videoContext->mouseX, _videoContext->mouseY);
+
+	const int MAGNETIC_THRESHOLD = 8;
+
+	if (!_videoContext->overlayVisible) {
+		if (eventPosition.x < MAGNETIC_THRESHOLD) {
+			eventPosition.x = 0;
+		} else if (eventPosition.x > _videoContext->screenWidth - 1 - MAGNETIC_THRESHOLD) {
+			eventPosition.x = _videoContext->screenWidth - 1;
+		}
+
+		if (eventPosition.y < MAGNETIC_THRESHOLD) {
+			eventPosition.y = 0;
+		} else if (eventPosition.y > _videoContext->screenHeight - 1 - MAGNETIC_THRESHOLD) {
+			eventPosition.y = _videoContext->screenHeight - 1;
+		}
+	}
+
 	if (_secondaryTapped) {
 		_secondaryTapped = false;
 		if (!handleEvent_secondMouseUp(event, x, y))
