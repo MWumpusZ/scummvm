@@ -24,6 +24,7 @@
 #define BLADERUNNER_BLADERUNNER_H
 
 #include "bladerunner/archive.h"
+#include "bladerunner/savefile.h"
 
 #include "common/array.h"
 #include "common/cosinetables.h"
@@ -224,7 +225,11 @@ public:
 	BladeRunnerEngine(OSystem *syst, const ADGameDescription *desc);
 	~BladeRunnerEngine();
 
-	bool hasFeature(EngineFeature f) const;
+	bool hasFeature(EngineFeature f) const override;
+	bool canLoadGameStateCurrently() override;
+	Common::Error loadGameState(int slot) override;
+	bool canSaveGameStateCurrently() override;
+	Common::Error saveGameState(int slot, const Common::String &desc) override;
 
 	Common::Error run();
 
@@ -271,14 +276,15 @@ public:
 	void playerLosesControl();
 	void playerGainsControl();
 
-	bool saveGame(const Common::String &filename, byte *thumbnail);
-	void loadGame(const Common::String &filename, byte *thumbnail);
-	void newGame();
+	bool saveGame(Common::WriteStream &stream, const void *thumbnail);
+	bool loadGame(Common::SeekableReadStream &stream);
+	void newGame(int difficulty);
 	void autoSaveGame();
 
 	void ISez(const Common::String &str);
 
-	void blitToScreen(const Graphics::Surface &src);
+	void blitToScreen(const Graphics::Surface &src) const;
+	void generateThumbnail(void *thumbnail) const;
 
 	GUI::Debugger *getDebugger();
 };

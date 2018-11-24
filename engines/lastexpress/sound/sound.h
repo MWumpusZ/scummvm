@@ -38,15 +38,16 @@ public:
 	~SoundManager();
 
 	// Sound playing
-	void playSound(EntityIndex entity, Common::String filename, SoundFlag flag = kSoundVolumeEntityDefault, byte a4 = 0);
-	bool playSoundWithSubtitles(Common::String filename, uint32 flag, EntityIndex entity, byte a4 = 0);
-	void playSoundEvent(EntityIndex entity, byte action, byte a3 = 0);
+	// the original game uses byte in playSound but unsigned in playSoundWithSubtitles for activateDelay, no idea why
+	void playSound(EntityIndex entity, Common::String filename, SoundFlag flag = kSoundVolumeEntityDefault, byte activateDelay = 0);
+	bool playSoundWithSubtitles(Common::String filename, uint32 flag, EntityIndex entity, unsigned activateDelay = 0);
+	void playSoundEvent(EntityIndex entity, byte action, byte activateDelay = 0);
 	void playDialog(EntityIndex entity, EntityIndex entityDialog, SoundFlag flag, byte a4);
 	void playSteam(CityIndex index);
 	void playFightSound(byte action, byte a4);
 	void playLocomotiveSound();
 	void playWarningCompartment(EntityIndex entity, ObjectIndex compartment);
-	void playLoopingSound(int param);
+	void playAmbientSound(int param);
 
 	// Dialog & Letters
 	void readText(int id);
@@ -64,13 +65,12 @@ public:
 
 	// Accessors
 	SoundQueue *getQueue() { return _queue; }
-	uint32 getData0() { return _data0; }
-	int32 getData1() { return _data1; }
-	int32 getData2() { return _data2; }
-	uint32 getLoopingSoundDuration() { return _loopingSoundDuration; }
+	uint32 getAmbientSoundDuration() { return _ambientSoundDuration; }
+	bool needToChangeAmbientVolume();
+	SoundFlag getChangedAmbientVolume() { return _ambientScheduledVolume; }
 
 	// Setters
-	void setData1(int32 data) { _data1 = data; }
+	void clearAmbientVolumeChange() { _ambientScheduledVolume = kVolumeNone; }
 
 private:
 	LastExpressEngine *_engine;
@@ -79,13 +79,10 @@ private:
 	// Compartment warnings by Mertens or Coudert
 	uint32 _lastWarning[12];
 
-	// Looping sound
-	int _loopingSoundDuration;
-
-	// Unknown data
-	uint32 _data0;
-	int32 _data1;
-	int32 _data2;
+	// Ambient sound
+	int _ambientSoundDuration;
+	uint32 _ambientVolumeChangeTimeMS, _ambientVolumeChangeDelayMS;
+	SoundFlag _ambientScheduledVolume;
 };
 
 } // End of namespace LastExpress

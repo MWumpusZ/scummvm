@@ -113,16 +113,14 @@ static const SoundFlag soundFlags[32] = {
 };
 
 SoundManager::SoundManager(LastExpressEngine *engine) : _engine(engine) {
-	_loopingSoundDuration = 0;
+	_ambientSoundDuration = 0;
 
 	_queue = new SoundQueue(engine);
 
 	memset(&_lastWarning, 0, sizeof(_lastWarning));
 
-	// Initialize unknown data
-	_data0 = 0;
-	_data1 = 0;
-	_data2 = 0;
+	_ambientVolumeChangeTimeMS = _ambientVolumeChangeDelayMS = 0;
+	_ambientScheduledVolume = kVolumeNone;
 }
 
 SoundManager::~SoundManager() {
@@ -135,47 +133,51 @@ SoundManager::~SoundManager() {
 //////////////////////////////////////////////////////////////////////////
 // Sound-related functions
 //////////////////////////////////////////////////////////////////////////
-void SoundManager::playSound(EntityIndex entity, Common::String filename, SoundFlag flag, byte a4) {
+void SoundManager::playSound(EntityIndex entity, Common::String filename, SoundFlag flag, byte activateDelay) {
 	if (_queue->isBuffered(entity) && entity && entity < kEntityTrain)
-		_queue->removeFromQueue(entity);
+		_queue->stop(entity);
 
-	SoundFlag currentFlag = (flag == -1) ? getSoundFlag(entity) : (SoundFlag)(flag | 0x80000);
+	SoundFlag currentFlag = (flag == kSoundVolumeEntityDefault) ? getSoundFlag(entity) : (SoundFlag)(flag | kSoundFlagFixedVolume);
 
 	// Add .SND at the end of the filename if needed
 	if (!filename.contains('.'))
 		filename += ".SND";
 
-	if (!playSoundWithSubtitles(filename, currentFlag, entity, a4))
+	if (!playSoundWithSubtitles(filename, currentFlag, entity, activateDelay))
 		if (entity)
 			getSavePoints()->push(kEntityPlayer, entity, kActionEndSound);
 }
 
-bool SoundManager::playSoundWithSubtitles(Common::String filename, uint32 flag, EntityIndex entity, byte a4) {
+bool SoundManager::playSoundWithSubtitles(Common::String filename, uint32 flag, EntityIndex entity, unsigned activateDelay) {
 	SoundEntry *entry = new SoundEntry(_engine);
 
 	entry->open(filename, (SoundFlag)flag, 30);
 	entry->setEntity(entity);
 
-	if (a4) {
-		entry->setField48(_data2 + 2 * a4);
-		entry->setStatus(entry->getStatus() | kSoundFlagDelayedActivate);
-	} else {
-		// Get subtitles name
-		uint32 size = filename.size();
-		while (filename.size() > size - 4)
-			filename.deleteLastChar();
+	// BUG: the original game skips adjustVolumeIfNISPlaying() for delayed-activate sounds.
+	// (the original code is structured in a slightly different way)
+	// Not sure whether it can be actually triggered,
+	// most delayed-activate sounds originate from user actions,
+	// all user actions are disabled while NIS is playing.
+	entry->adjustVolumeIfNISPlaying();
 
-		entry->showSubtitle(filename);
-		entry->updateState();
+	if (activateDelay) {
+		entry->initDelayedActivate(activateDelay);
+	} else {
+		entry->play();
 	}
 
 	// Add entry to sound list
 	_queue->addToQueue(entry);
 
-	return (entry->getType() != kSoundTypeNone);
+	return (entry->getTag() != kSoundTagNone);
 }
 
-void SoundManager::playSoundEvent(EntityIndex entity, byte action, byte a3) {
+bool SoundManager::needToChangeAmbientVolume() {
+	return _ambientScheduledVolume && _engine->_system->getMillis() - _ambientVolumeChangeTimeMS >= _ambientVolumeChangeDelayMS;
+}
+
+void SoundManager::playSoundEvent(EntityIndex entity, byte action, byte activateDelay) {
 	int values[5];
 
 	if (getEntityData(entity)->car != getEntityData(kEntityPlayer)->car)
@@ -189,18 +191,20 @@ void SoundManager::playSoundEvent(EntityIndex entity, byte action, byte a3) {
 
 	switch (action) {
 	case 36: {
-		int _param3 = (flag <= 9) ? flag + 7 : 16;
+		uint newVolume = (flag <= kVolumeFull - 7) ? flag + 7 : kVolumeFull;
 
-		if (_param3 > 7) {
-			_data0 = (uint)_param3;
-			_data1 = _data2 + 2 * a3;
+		if (newVolume > kVolume7) {
+			_ambientScheduledVolume = (SoundFlag)newVolume;
+			_ambientVolumeChangeTimeMS = _engine->_system->getMillis();
+			_ambientVolumeChangeDelayMS = activateDelay * 1000 / 15;
 		}
 		break;
 		}
 
 	case 37:
-		_data0 = 7;
-		_data1 = _data2 + 2 * a3;
+		_ambientScheduledVolume = kVolume7;
+		_ambientVolumeChangeTimeMS = _engine->_system->getMillis();
+		_ambientVolumeChangeDelayMS = activateDelay * 1000 / 15;
 		break;
 
 	case 150:
@@ -298,22 +302,22 @@ void SoundManager::playSoundEvent(EntityIndex entity, byte action, byte a3) {
 	}
 
 	if (_action && flag)
-		playSoundWithSubtitles(Common::String::format("LIB%03d.SND", _action), flag, kEntityPlayer, a3);
+		playSoundWithSubtitles(Common::String::format("LIB%03d.SND", _action), flag, kEntityPlayer, activateDelay);
 }
 
 void SoundManager::playSteam(CityIndex index) {
 	if (index >= ARRAYSIZE(cities))
 		error("[SoundManager::playSteam] Invalid city index (was %d, max %d)", index, ARRAYSIZE(cities));
 
-	_queue->resetState(kSoundState2);
+	_queue->setAmbientToSteam();
 
-	if (!_queue->getEntry(kSoundType1))
+	if (!_queue->getEntry(kSoundTagAmbient))
 		playSoundWithSubtitles("STEAM.SND", kSoundTypeAmbient | kSoundFlagLooped | kVolume7, kEntitySteam);
 
 	// Get the new sound entry and show subtitles
-	SoundEntry *entry = _queue->getEntry(kSoundType1);
+	SoundEntry *entry = _queue->getEntry(kSoundTagAmbient);
 	if (entry)
-		entry->showSubtitle(cities[index]);
+		entry->setSubtitles(cities[index]);
 }
 
 void SoundManager::playFightSound(byte action, byte a4) {
@@ -362,7 +366,7 @@ void SoundManager::playFightSound(byte action, byte a4) {
 
 void SoundManager::playDialog(EntityIndex entity, EntityIndex entityDialog, SoundFlag flag, byte a4) {
 	if (_queue->isBuffered(getDialogName(entityDialog)))
-		_queue->removeFromQueue(getDialogName(entityDialog));
+		_queue->stop(getDialogName(entityDialog));
 
 	playSound(entity, getDialogName(entityDialog), flag, a4);
 }
@@ -689,7 +693,7 @@ void SoundManager::readText(int id) {
 	// Check if file is in cache for id [1;8]
 	if (id <= 8)
 		if (_queue->isBuffered(text))
-			_queue->removeFromQueue(text);
+			_queue->stop(text);
 
 	playSound(kEntityTables4, text, kVolumeFull);
 }
@@ -1287,8 +1291,8 @@ SoundFlag SoundManager::getSoundFlag(EntityIndex entity) const {
 //////////////////////////////////////////////////////////////////////////
 // Misc
 //////////////////////////////////////////////////////////////////////////
-void SoundManager::playLoopingSound(int param) {
-	SoundEntry *entry = _queue->getEntry(kSoundType1);
+void SoundManager::playAmbientSound(int param) {
+	SoundEntry *entry = _queue->getEntry(kSoundTagAmbient);
 
 	static const EntityPosition positions[8] = { kPosition_8200, kPosition_7500,
 	                                             kPosition_6470, kPosition_5790,
@@ -1309,11 +1313,11 @@ void SoundManager::playLoopingSound(int param) {
 	int partNumber = 1;
 	int fnameLen = 6;
 
-	if (_queue->getSoundState() & kSoundState1 && param >= 0x45 && param <= 0x46) {
-		if (_queue->getSoundState() & kSoundState2) {
+	if (_queue->getAmbientState() & kAmbientSoundEnabled && param >= 0x45 && param <= 0x46) {
+		if (_queue->getAmbientState() & kAmbientSoundSteam) {
 			strcpy(tmp, "STEAM.SND");
 
-			_loopingSoundDuration = 32767;
+			_ambientSoundDuration = 32767;
 		} else {
 			if (getEntityData(kEntityPlayer)->location == kLocationOutsideTrain) {
 				partNumber = 6;
@@ -1367,18 +1371,18 @@ void SoundManager::playLoopingSound(int param) {
 		if (getFlags()->flag_3)
 			fnameLen = 5;
 
-		if (!entry || scumm_strnicmp(entry->getName2().c_str(), tmp, (uint)fnameLen)) {
-			_loopingSoundDuration = _engine->getRandom().getRandomNumber(319) + 260;
+		if (!entry || scumm_strnicmp(entry->getName().c_str(), tmp, (uint)fnameLen)) {
+			_ambientSoundDuration = _engine->getRandom().getRandomNumber(319) + 260;
 
 			if (partNumber != 99) {
 				playSoundWithSubtitles(tmp, kSoundTypeAmbient | kSoundFlagLooped | kVolume1, kEntitySteam);
 
 				if (entry)
-					entry->update(0);
+					entry->fade();
 
-				SoundEntry *entry1 = _queue->getEntry(kSoundType1);
+				SoundEntry *entry1 = _queue->getEntry(kSoundTagAmbient);
 				if (entry1)
-					entry1->update(7);
+					entry1->setVolumeSmoothly(kVolume7);
 			}
 		}
 	}
