@@ -25,6 +25,8 @@
 
 #include "backends/platform/ios7/ios7_osys_main.h"
 
+#include <AudioToolbox/AudioSession.h>
+
 void OSystem_iOS7::AQBufferCallback(void *in, AudioQueueRef inQ, AudioQueueBufferRef outQB) {
 	//printf("AQBufferCallback()\n");
 	if (s_AudioQueue.frameCount > 0 && s_soundCallback != NULL) {
@@ -55,6 +57,19 @@ void OSystem_iOS7::setupMixer() {
 }
 
 void OSystem_iOS7::startSoundsystem() {
+    UInt32 audioCategory = kAudioSessionCategory_MediaPlayback;
+    audioCategory = kAudioSessionCategory_AmbientSound;
+    
+    UInt32 audioMode = kAudioSessionMode_Default;
+    
+    AudioSessionSetProperty(kAudioSessionProperty_AudioCategory,
+                            sizeof(audioCategory),
+                            &audioCategory);
+    AudioSessionSetProperty(kAudioSessionProperty_Mode,
+                            sizeof(audioMode),
+                            &audioMode);
+    
+
 	s_AudioQueue.dataFormat.mSampleRate = AUDIO_SAMPLE_RATE;
 	s_AudioQueue.dataFormat.mFormatID = kAudioFormatLinearPCM;
 	s_AudioQueue.dataFormat.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
