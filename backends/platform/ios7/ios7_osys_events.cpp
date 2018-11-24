@@ -169,17 +169,14 @@ bool OSystem_iOS7::handleEvent_mouseUp(Common::Event &event, int x, int y) {
 			return false;
 	} else if (_mouseClickAndDragEnabled) {
 		event.type = Common::EVENT_LBUTTONUP;
-		event.mouse.x = _videoContext->mouseX;
-		event.mouse.y = _videoContext->mouseY;
+		event.mouse = eventPosition;
 	} else {
 		if (getMillis() - _lastMouseDown < 250) {
 			event.type = Common::EVENT_LBUTTONDOWN;
-			event.mouse.x = _videoContext->mouseX;
-			event.mouse.y = _videoContext->mouseY;
+			event.mouse = eventPosition;
 
-			_queuedInputEvent.type = Common::EVENT_LBUTTONUP;
-			_queuedInputEvent.mouse.x = _videoContext->mouseX;
-			_queuedInputEvent.mouse.y = _videoContext->mouseY;
+			_queuedInputEvent.type = Common::EVENT_LBUTTONUP;  // Is there a reason to not just copy the whole event?
+			_queuedInputEvent.mouse = eventPosition;
 			_lastMouseTap = getMillis();
 			_queuedEventTime = _lastMouseTap + kQueuedInputEventDelay;
 		} else
