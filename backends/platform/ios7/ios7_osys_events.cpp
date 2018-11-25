@@ -147,18 +147,18 @@ bool OSystem_iOS7::handleEvent_mouseUp(Common::Event &event, int x, int y) {
 
 	Common::Point eventPosition(_videoContext->mouseX, _videoContext->mouseY);
 
-	const int MAGNETIC_THRESHOLD = 8;
-
 	if (!_videoContext->overlayVisible) {
-		if (eventPosition.x < MAGNETIC_THRESHOLD) {
+		float const MAGNETIC_THRESHOLD = 0.05;
+
+		if (eventPosition.x < _videoContext->screenWidth * MAGNETIC_THRESHOLD) {
 			eventPosition.x = 0;
-		} else if (eventPosition.x > _videoContext->screenWidth - 1 - MAGNETIC_THRESHOLD) {
+		} else if (eventPosition.x > (_videoContext->screenWidth - 1) * (1.0 - MAGNETIC_THRESHOLD)) {
 			eventPosition.x = _videoContext->screenWidth - 1;
 		}
 
-		if (eventPosition.y < MAGNETIC_THRESHOLD) {
+		if (eventPosition.y < _videoContext->screenHeight * MAGNETIC_THRESHOLD) {
 			eventPosition.y = 0;
-		} else if (eventPosition.y > _videoContext->screenHeight - 1 - MAGNETIC_THRESHOLD) {
+        } else if (eventPosition.y > (_videoContext->screenHeight - 1) * (1.0 - MAGNETIC_THRESHOLD)) {
 			eventPosition.y = _videoContext->screenHeight - 1;
 		}
 	}
